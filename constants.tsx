@@ -38,7 +38,7 @@ export const INITIAL_SITE_CONFIG: SiteConfig = {
       tr: "Ege güneşinin modern konforla buluştuğu nokta. Huzur ve zarafet için tasarlanmış 17 odalı bir butik deneyim.",
       de: "Wo die ägäische Sonne auf modernen Komfort trifft. Ein Boutique-Erlebnis mit 17 Zimmern, entworfen für Ruhe und Eleganz."
     },
-    image: "/viona-hero.jpg" // Yeni resepsiyon arka planı
+    image: "/viona-sunset-reception.jpg" // Yeni resepsiyon arka planı
   },
   about: {
     title: {
