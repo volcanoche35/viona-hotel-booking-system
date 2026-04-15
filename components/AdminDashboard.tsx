@@ -1,18 +1,18 @@
 
-import React, { useState } from 'react';
-import { Booking, SiteConfig, Room } from '../types';
+import React, { useState, useEffect } from 'react';
+import { Booking, SiteConfig, Room, RoomCategory, BlockedDate, ReservationRequest } from '../types';
 import { Language } from '../translations';
-import { 
-  Shield, 
-  LogOut, 
-  Database, 
-  Download, 
-  Settings, 
-  Bed, 
-  Image as ImageIcon, 
-  Save, 
-  CheckCircle, 
-  Clock, 
+import {
+  Shield,
+  LogOut,
+  Database,
+  Download,
+  Settings,
+  Bed,
+  Image as ImageIcon,
+  Save,
+  CheckCircle,
+  Clock,
   Layout,
   Layers,
   Upload,
@@ -22,7 +22,9 @@ import {
   ChevronLeft,
   ChevronRight,
   Edit3,
-  Eye
+  Eye,
+  CalendarX,
+  CalendarCheck
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -33,8 +35,148 @@ interface AdminDashboardProps {
   lang: Language;
 }
 
+// Availability Management Subcomponent
+import { bookingService } from '../services/bookingService';
+
+const AvailabilityManagement: React.FC<{ lang: Language }> = ({ lang }) => {
+  const [blockedDates, setBlockedDates] = useState<BlockedDate[]>([]);
+  const [requests, setRequests] = useState<ReservationRequest[]>([]);
+  const [newBlock, setNewBlock] = useState({ date: '', category: RoomCategory.SEA_VIEW, reason: '' });
+
+  useEffect(() => {
+    setBlockedDates(bookingService.getBlockedDates());
+    setRequests(bookingService.getAllRequests());
+  }, []);
+
+  const handleAddBlock = () => {
+    if (!newBlock.date) return;
+    bookingService.saveBlockedDate({
+      date: newBlock.date,
+      roomCategory: newBlock.category,
+      reason: newBlock.reason || undefined
+    });
+    setBlockedDates(bookingService.getBlockedDates());
+    setNewBlock({ date: '', category: RoomCategory.SEA_VIEW, reason: '' });
+  };
+
+  const handleRemoveBlock = (id: string) => {
+    bookingService.removeBlockedDate(id);
+    setBlockedDates(bookingService.getBlockedDates());
+  };
+
+  const handleUpdateRequestStatus = (id: string, status: ReservationRequest['status']) => {
+    bookingService.updateRequestStatus(id, status);
+    setRequests(bookingService.getAllRequests());
+  };
+
+  return (
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
+      {/* Reservation Requests */}
+      <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-gray-100">
+        <h4 className="text-xl font-serif text-viona-text mb-6 flex items-center gap-3">
+          <CalendarCheck className="w-6 h-6 text-viona-accent" />
+          {lang === 'tr' ? 'Talep Listesi' : 'Requests'}
+        </h4>
+        {requests.length === 0 ? (
+          <p className="text-viona-detail text-center py-8">{lang === 'tr' ? 'Henüz talep yok.' : 'No requests yet.'}</p>
+        ) : (
+          <div className="space-y-4">
+            {requests.map(req => (
+              <div key={req.id} className="flex items-center justify-between p-5 bg-viona-bg/30 rounded-2xl">
+                <div>
+                  <p className="font-bold text-viona-text">{req.customerName}</p>
+                  <p className="text-sm text-viona-detail">{req.customerPhone}</p>
+                  <p className="text-xs text-viona-detail mt-1">{req.checkIn} → {req.checkOut} | {req.preferredRoomCategory}</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className={`text-[9px] font-black uppercase px-3 py-1 rounded-full ${req.status === 'pending' ? 'bg-amber-100 text-amber-700' :
+                    req.status === 'contacted' ? 'bg-blue-100 text-blue-700' :
+                      req.status === 'confirmed' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
+                    }`}>{req.status}</span>
+                  <select
+                    value={req.status}
+                    onChange={(e) => handleUpdateRequestStatus(req.id, e.target.value as ReservationRequest['status'])}
+                    className="text-xs bg-white border border-gray-200 rounded-lg px-2 py-1"
+                  >
+                    <option value="pending">{lang === 'tr' ? 'Bekliyor' : 'Pending'}</option>
+                    <option value="contacted">{lang === 'tr' ? 'Arandı' : 'Contacted'}</option>
+                    <option value="confirmed">{lang === 'tr' ? 'Onaylandı' : 'Confirmed'}</option>
+                    <option value="cancelled">{lang === 'tr' ? 'İptal' : 'Cancelled'}</option>
+                  </select>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Blocked Dates */}
+      <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-gray-100">
+        <h4 className="text-xl font-serif text-viona-text mb-6 flex items-center gap-3">
+          <CalendarX className="w-6 h-6 text-red-500" />
+          {lang === 'tr' ? 'Bloke Tarihler' : 'Blocked Dates'}
+        </h4>
+
+        {/* Add Block Form */}
+        <div className="flex flex-wrap gap-4 mb-6 p-4 bg-viona-bg/30 rounded-xl">
+          <input
+            type="date"
+            value={newBlock.date}
+            onChange={(e) => setNewBlock({ ...newBlock, date: e.target.value })}
+            className="px-4 py-2 border border-gray-200 rounded-lg text-sm"
+          />
+          <select
+            value={newBlock.category}
+            onChange={(e) => setNewBlock({ ...newBlock, category: e.target.value as RoomCategory })}
+            className="px-4 py-2 border border-gray-200 rounded-lg text-sm"
+          >
+            <option value={RoomCategory.SEA_VIEW}>{lang === 'tr' ? 'Deniz Manzaralı' : 'Sea View'}</option>
+            <option value={RoomCategory.LAND_VIEW}>{lang === 'tr' ? 'Bahçe Manzaralı' : 'Garden View'}</option>
+          </select>
+          <input
+            type="text"
+            placeholder={lang === 'tr' ? 'Sebep (opsiyonel)' : 'Reason (optional)'}
+            value={newBlock.reason}
+            onChange={(e) => setNewBlock({ ...newBlock, reason: e.target.value })}
+            className="flex-1 px-4 py-2 border border-gray-200 rounded-lg text-sm"
+          />
+          <button
+            onClick={handleAddBlock}
+            className="px-6 py-2 bg-red-500 text-white rounded-lg font-bold text-xs uppercase tracking-wider hover:bg-red-600 transition-colors"
+          >
+            {lang === 'tr' ? 'Blokla' : 'Block'}
+          </button>
+        </div>
+
+        {/* Blocked List */}
+        {blockedDates.length === 0 ? (
+          <p className="text-viona-detail text-center py-4">{lang === 'tr' ? 'Bloke tarih yok.' : 'No blocked dates.'}</p>
+        ) : (
+          <div className="space-y-2">
+            {blockedDates.map(b => (
+              <div key={b.id} className="flex items-center justify-between p-4 bg-red-50 rounded-xl border border-red-100">
+                <div className="flex items-center gap-4">
+                  <span className="font-mono font-bold text-red-700">{b.date}</span>
+                  <span className="text-xs bg-red-100 text-red-600 px-2 py-1 rounded">{b.roomCategory}</span>
+                  {b.reason && <span className="text-xs text-gray-500">{b.reason}</span>}
+                </div>
+                <button
+                  onClick={() => handleRemoveBlock(b.id)}
+                  className="p-2 text-red-500 hover:bg-red-100 rounded-lg transition-colors"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ bookings, onLogout, siteConfig, onUpdateConfig, lang }) => {
-  const [activeTab, setActiveTab] = useState<'bookings' | 'rooms' | 'content' | 'roadmap'>('bookings');
+  const [activeTab, setActiveTab] = useState<'bookings' | 'rooms' | 'content' | 'availability' | 'roadmap'>('bookings');
   const [editingConfig, setEditingConfig] = useState<SiteConfig>(siteConfig);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [selectedGalleryIndex, setSelectedGalleryIndex] = useState<number>(0);
@@ -53,7 +195,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ bookings, onLogo
     const reader = new FileReader();
     reader.onload = (event) => {
       const imageUrl = event.target?.result as string;
-      
+
       if (target === 'hero') {
         setEditingConfig({ ...editingConfig, hero: { ...editingConfig.hero, image: imageUrl } });
       } else if (target === 'about1') {
@@ -143,6 +285,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ bookings, onLogo
             { id: 'bookings', label: lang === 'tr' ? 'Rezervasyonlar' : 'Bookings', icon: Database },
             { id: 'rooms', label: lang === 'tr' ? 'Odalar' : 'Rooms', icon: Bed },
             { id: 'content', label: lang === 'tr' ? 'İçerik' : 'Content', icon: ImageIcon },
+            { id: 'availability', label: lang === 'tr' ? 'Doluluk' : 'Availability', icon: CalendarCheck },
             { id: 'roadmap', label: lang === 'tr' ? 'Yol Haritası' : 'Roadmap', icon: Layout }
           ].map(tab => (
             <button
@@ -212,23 +355,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ bookings, onLogo
               <div key={room.id} className="bg-white p-8 rounded-[2rem] shadow-sm border border-gray-100 space-y-6">
                 {/* Main Image with Upload/Preview */}
                 <div className="relative group">
-                  <img 
-                    src={room.image} 
-                    className="w-full h-48 object-cover rounded-2xl shadow-inner cursor-pointer" 
+                  <img
+                    src={room.image}
+                    className="w-full h-48 object-cover rounded-2xl shadow-inner cursor-pointer"
                     alt="Room Preview"
                     onClick={() => setImagePreview(room.image)}
                   />
-                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-all rounded-2xl flex items-center justify-center gap-3">
+                  <div className="absolute inset-0 bg-black/40 rounded-2xl flex items-center justify-center gap-3">
                     <label className="p-3 bg-white rounded-full cursor-pointer hover:scale-110 transition-transform">
                       <Upload className="w-5 h-5 text-viona-accent" />
-                      <input 
-                        type="file" 
-                        accept="image/*" 
-                        className="hidden" 
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
                         onChange={(e) => handleImageUpload(e, 'room', idx)}
                       />
                     </label>
-                    <button 
+                    <button
                       onClick={() => setImagePreview(room.image)}
                       className="p-3 bg-white rounded-full hover:scale-110 transition-transform"
                     >
@@ -241,7 +384,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ bookings, onLogo
                 <div>
                   <div className="flex justify-between items-center mb-3">
                     <label className="text-[10px] font-black uppercase text-viona-detail tracking-widest">Gallery ({room.gallery.length})</label>
-                    <button 
+                    <button
                       onClick={() => handleAddGalleryImage(idx)}
                       className="p-2 bg-viona-accent text-white rounded-lg hover:brightness-110 transition-all"
                     >
@@ -251,9 +394,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ bookings, onLogo
                   <div className="grid grid-cols-4 gap-2">
                     {room.gallery.map((img, gIdx) => (
                       <div key={gIdx} className="relative group">
-                        <img 
-                          src={img} 
-                          className="w-full h-16 object-cover rounded-lg cursor-pointer" 
+                        <img
+                          src={img}
+                          className="w-full h-16 object-cover rounded-lg cursor-pointer"
                           onClick={() => {
                             setSelectedGalleryIndex(gIdx);
                             setEditingRoomIndex(idx);
@@ -261,17 +404,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ bookings, onLogo
                           }}
                           alt={`Gallery ${gIdx}`}
                         />
-                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-all rounded-lg flex items-center justify-center gap-1">
+                        <div className="absolute inset-0 bg-black/40 rounded-lg flex items-center justify-center gap-1">
                           <label className="p-1.5 bg-white rounded cursor-pointer hover:scale-110 transition-transform">
                             <Upload className="w-3 h-3 text-viona-accent" />
-                            <input 
-                              type="file" 
-                              accept="image/*" 
-                              className="hidden" 
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
                               onChange={(e) => handleImageUpload(e, 'gallery', idx, gIdx)}
                             />
                           </label>
-                          <button 
+                          <button
                             onClick={() => handleDeleteGalleryImage(idx, gIdx)}
                             className="p-1.5 bg-red-500 text-white rounded hover:scale-110 transition-transform"
                           >
@@ -323,38 +466,38 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ bookings, onLogo
                   {/* Description Fields */}
                   <div>
                     <label className="text-[10px] font-black uppercase text-viona-detail block mb-2 tracking-widest">Description (TR)</label>
-                    <textarea 
-                      className="w-full p-3 bg-gray-50 rounded-lg text-xs font-medium h-20 resize-none" 
-                      value={room.description.tr} 
+                    <textarea
+                      className="w-full p-3 bg-gray-50 rounded-lg text-xs font-medium h-20 resize-none"
+                      value={room.description.tr}
                       onChange={e => {
                         const newRooms = [...editingConfig.rooms];
                         newRooms[idx].description.tr = e.target.value;
                         setEditingConfig({ ...editingConfig, rooms: newRooms });
-                      }} 
+                      }}
                     />
                   </div>
                   <div>
                     <label className="text-[10px] font-black uppercase text-viona-detail block mb-2 tracking-widest">Description (EN)</label>
-                    <textarea 
-                      className="w-full p-3 bg-gray-50 rounded-lg text-xs font-medium h-20 resize-none" 
-                      value={room.description.en} 
+                    <textarea
+                      className="w-full p-3 bg-gray-50 rounded-lg text-xs font-medium h-20 resize-none"
+                      value={room.description.en}
                       onChange={e => {
                         const newRooms = [...editingConfig.rooms];
                         newRooms[idx].description.en = e.target.value;
                         setEditingConfig({ ...editingConfig, rooms: newRooms });
-                      }} 
+                      }}
                     />
                   </div>
                   <div>
                     <label className="text-[10px] font-black uppercase text-viona-detail block mb-2 tracking-widest">Description (DE)</label>
-                    <textarea 
-                      className="w-full p-3 bg-gray-50 rounded-lg text-xs font-medium h-20 resize-none" 
-                      value={room.description.de} 
+                    <textarea
+                      className="w-full p-3 bg-gray-50 rounded-lg text-xs font-medium h-20 resize-none"
+                      value={room.description.de}
                       onChange={e => {
                         const newRooms = [...editingConfig.rooms];
                         newRooms[idx].description.de = e.target.value;
                         setEditingConfig({ ...editingConfig, rooms: newRooms });
-                      }} 
+                      }}
                     />
                   </div>
                 </div>
@@ -365,85 +508,248 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ bookings, onLogo
 
         {activeTab === 'content' && (
           <div className="max-w-4xl mx-auto space-y-12 animate-in fade-in slide-in-from-bottom-4">
-            {/* Hero Section */}
+            {/* Hero Slider Section */}
+            <div className="bg-white p-10 rounded-[3rem] shadow-sm border border-gray-100 space-y-8">
+              <div className="flex items-center justify-between">
+                <h4 className="text-2xl font-serif text-viona-text flex items-center gap-3">
+                  <Layers className="w-6 h-6 text-viona-accent" /> Hero Slider
+                </h4>
+                <button
+                  onClick={() => {
+                    const newSlide = {
+                      id: `slide_${Date.now()}`,
+                      type: 'image' as const,
+                      url: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1200'
+                    };
+                    setEditingConfig({
+                      ...editingConfig,
+                      hero: {
+                        ...editingConfig.hero,
+                        slides: [...(editingConfig.hero.slides || []), newSlide]
+                      }
+                    });
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 bg-viona-accent text-white rounded-xl hover:brightness-110 transition-all font-bold text-xs uppercase tracking-widest"
+                >
+                  <Plus className="w-4 h-4" /> {lang === 'tr' ? 'Slayt Ekle' : 'Add Slide'}
+                </button>
+              </div>
+
+              {/* Slides Grid */}
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {(editingConfig.hero.slides || []).map((slide, idx) => (
+                  <div key={slide.id} className="relative group bg-gray-50 rounded-2xl overflow-hidden border border-gray-100">
+                    {/* Preview */}
+                    <div className="aspect-video relative">
+                      {slide.type === 'video' ? (
+                        <video
+                          src={slide.url}
+                          className="w-full h-full object-cover"
+                          muted
+                          loop
+                          playsInline
+                        />
+                      ) : (
+                        <img
+                          src={slide.url}
+                          className="w-full h-full object-cover"
+                          alt={`Slide ${idx + 1}`}
+                        />
+                      )}
+                      {/* Type Badge */}
+                      <span className={`absolute top-2 left-2 px-2 py-1 rounded-full text-[9px] font-black uppercase ${slide.type === 'video' ? 'bg-red-500 text-white' : 'bg-white/90 text-viona-text'
+                        }`}>
+                        {slide.type === 'video' ? '▶ Video' : '🖼 Image'}
+                      </span>
+                      {/* Order Badge */}
+                      <span className="absolute top-2 right-2 w-6 h-6 bg-viona-accent text-white rounded-full flex items-center justify-center text-[10px] font-black">
+                        {idx + 1}
+                      </span>
+                      {/* Hover Actions */}
+                      <div className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center gap-2">
+                        {/* Upload New */}
+                        <label className="p-2 bg-white rounded-full cursor-pointer hover:scale-110 transition-transform">
+                          <Upload className="w-4 h-4 text-viona-accent" />
+                          <input
+                            type="file"
+                            accept="image/*,video/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              const isVideo = file.type.startsWith('video/');
+                              const reader = new FileReader();
+                              reader.onload = (event) => {
+                                const url = event.target?.result as string;
+                                const newSlides = [...(editingConfig.hero.slides || [])];
+                                newSlides[idx] = { ...newSlides[idx], url, type: isVideo ? 'video' : 'image' };
+                                setEditingConfig({
+                                  ...editingConfig,
+                                  hero: { ...editingConfig.hero, slides: newSlides }
+                                });
+                              };
+                              reader.readAsDataURL(file);
+                            }}
+                          />
+                        </label>
+                        {/* Preview */}
+                        <button
+                          onClick={() => setImagePreview(slide.url)}
+                          className="p-2 bg-white rounded-full hover:scale-110 transition-transform"
+                        >
+                          <Eye className="w-4 h-4 text-viona-text" />
+                        </button>
+                        {/* Move Up */}
+                        {idx > 0 && (
+                          <button
+                            onClick={() => {
+                              const newSlides = [...(editingConfig.hero.slides || [])];
+                              [newSlides[idx - 1], newSlides[idx]] = [newSlides[idx], newSlides[idx - 1]];
+                              setEditingConfig({
+                                ...editingConfig,
+                                hero: { ...editingConfig.hero, slides: newSlides }
+                              });
+                            }}
+                            className="p-2 bg-white rounded-full hover:scale-110 transition-transform"
+                          >
+                            <ChevronLeft className="w-4 h-4 text-viona-text" />
+                          </button>
+                        )}
+                        {/* Move Down */}
+                        {idx < (editingConfig.hero.slides?.length || 0) - 1 && (
+                          <button
+                            onClick={() => {
+                              const newSlides = [...(editingConfig.hero.slides || [])];
+                              [newSlides[idx], newSlides[idx + 1]] = [newSlides[idx + 1], newSlides[idx]];
+                              setEditingConfig({
+                                ...editingConfig,
+                                hero: { ...editingConfig.hero, slides: newSlides }
+                              });
+                            }}
+                            className="p-2 bg-white rounded-full hover:scale-110 transition-transform"
+                          >
+                            <ChevronRight className="w-4 h-4 text-viona-text" />
+                          </button>
+                        )}
+                        {/* Delete */}
+                        <button
+                          onClick={() => {
+                            const newSlides = (editingConfig.hero.slides || []).filter((_, i) => i !== idx);
+                            setEditingConfig({
+                              ...editingConfig,
+                              hero: { ...editingConfig.hero, slides: newSlides }
+                            });
+                          }}
+                          className="p-2 bg-red-500 text-white rounded-full hover:scale-110 transition-transform"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                    {/* URL Input */}
+                    <div className="p-3">
+                      <input
+                        type="text"
+                        placeholder={lang === 'tr' ? 'Görsel/Video URL' : 'Image/Video URL'}
+                        className="w-full p-2 bg-white border border-gray-200 rounded-lg text-[10px] font-medium"
+                        value={slide.url}
+                        onChange={(e) => {
+                          const newSlides = [...(editingConfig.hero.slides || [])];
+                          const isVideo = e.target.value.match(/\.(mp4|webm|ogg)$/i);
+                          newSlides[idx] = { ...newSlides[idx], url: e.target.value, type: isVideo ? 'video' : 'image' };
+                          setEditingConfig({
+                            ...editingConfig,
+                            hero: { ...editingConfig.hero, slides: newSlides }
+                          });
+                        }}
+                      />
+                      {/* Type Toggle */}
+                      <div className="flex gap-2 mt-2">
+                        <button
+                          onClick={() => {
+                            const newSlides = [...(editingConfig.hero.slides || [])];
+                            newSlides[idx] = { ...newSlides[idx], type: 'image' };
+                            setEditingConfig({
+                              ...editingConfig,
+                              hero: { ...editingConfig.hero, slides: newSlides }
+                            });
+                          }}
+                          className={`flex-1 py-1 text-[9px] font-black uppercase rounded-lg transition-all ${slide.type === 'image' ? 'bg-viona-accent text-white' : 'bg-gray-100 text-viona-detail hover:bg-gray-200'
+                            }`}
+                        >
+                          Image
+                        </button>
+                        <button
+                          onClick={() => {
+                            const newSlides = [...(editingConfig.hero.slides || [])];
+                            newSlides[idx] = { ...newSlides[idx], type: 'video' };
+                            setEditingConfig({
+                              ...editingConfig,
+                              hero: { ...editingConfig.hero, slides: newSlides }
+                            });
+                          }}
+                          className={`flex-1 py-1 text-[9px] font-black uppercase rounded-lg transition-all ${slide.type === 'video' ? 'bg-red-500 text-white' : 'bg-gray-100 text-viona-detail hover:bg-gray-200'
+                            }`}
+                        >
+                          Video
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {(!editingConfig.hero.slides || editingConfig.hero.slides.length === 0) && (
+                <div className="text-center py-12 text-viona-detail">
+                  <Layers className="w-12 h-12 mx-auto mb-4 opacity-30" />
+                  <p className="text-sm font-medium">{lang === 'tr' ? 'Henüz slayt eklenmedi' : 'No slides added yet'}</p>
+                  <p className="text-xs opacity-60 mt-1">{lang === 'tr' ? 'Yukarıdaki butona tıklayarak slayt ekleyin' : 'Click the button above to add slides'}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Hero Texts Section */}
             <div className="bg-white p-10 rounded-[3rem] shadow-sm border border-gray-100 space-y-8">
               <h4 className="text-2xl font-serif text-viona-text flex items-center gap-3">
-                <ImageIcon className="w-6 h-6 text-viona-accent" /> Hero Section
+                <ImageIcon className="w-6 h-6 text-viona-accent" /> Hero Texts
               </h4>
-              
-              {/* Hero Image */}
-              <div className="space-y-4">
-                <label className="text-[10px] font-black uppercase text-viona-detail tracking-widest">Hero Image</label>
-                <div className="relative group">
-                  <img 
-                    src={editingConfig.hero.image} 
-                    className="w-full h-64 object-cover rounded-2xl shadow-lg cursor-pointer" 
-                    alt="Hero Preview"
-                    onClick={() => setImagePreview(editingConfig.hero.image)}
-                  />
-                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-all rounded-2xl flex items-center justify-center gap-4">
-                    <label className="p-4 bg-white rounded-full cursor-pointer hover:scale-110 transition-transform">
-                      <Upload className="w-6 h-6 text-viona-accent" />
-                      <input 
-                        type="file" 
-                        accept="image/*" 
-                        className="hidden" 
-                        onChange={(e) => handleImageUpload(e, 'hero')}
-                      />
-                    </label>
-                    <button 
-                      onClick={() => setImagePreview(editingConfig.hero.image)}
-                      className="p-4 bg-white rounded-full hover:scale-110 transition-transform"
-                    >
-                      <Eye className="w-6 h-6 text-viona-text" />
-                    </button>
-                  </div>
-                </div>
-                <input 
-                  type="text" 
-                  placeholder="Or paste image URL" 
-                  className="w-full p-4 bg-gray-50 rounded-2xl text-xs font-bold" 
-                  value={editingConfig.hero.image} 
-                  onChange={e => setEditingConfig({ ...editingConfig, hero: { ...editingConfig.hero, image: e.target.value } })} 
-                />
-              </div>
 
               {/* Hero Texts */}
               <div className="grid grid-cols-3 gap-6">
                 <div>
                   <label className="text-[10px] font-black uppercase text-viona-detail block mb-2">Tag (TR)</label>
-                  <input 
-                    type="text" 
-                    className="w-full p-3 bg-gray-50 rounded-xl text-xs font-bold" 
-                    value={editingConfig.hero.tag.tr} 
-                    onChange={e => setEditingConfig({ 
-                      ...editingConfig, 
-                      hero: { ...editingConfig.hero, tag: { ...editingConfig.hero.tag, tr: e.target.value } } 
-                    })} 
+                  <input
+                    type="text"
+                    className="w-full p-3 bg-gray-50 rounded-xl text-xs font-bold"
+                    value={editingConfig.hero.tag.tr}
+                    onChange={e => setEditingConfig({
+                      ...editingConfig,
+                      hero: { ...editingConfig.hero, tag: { ...editingConfig.hero.tag, tr: e.target.value } }
+                    })}
                   />
                 </div>
                 <div>
                   <label className="text-[10px] font-black uppercase text-viona-detail block mb-2">Tag (EN)</label>
-                  <input 
-                    type="text" 
-                    className="w-full p-3 bg-gray-50 rounded-xl text-xs font-bold" 
-                    value={editingConfig.hero.tag.en} 
-                    onChange={e => setEditingConfig({ 
-                      ...editingConfig, 
-                      hero: { ...editingConfig.hero, tag: { ...editingConfig.hero.tag, en: e.target.value } } 
-                    })} 
+                  <input
+                    type="text"
+                    className="w-full p-3 bg-gray-50 rounded-xl text-xs font-bold"
+                    value={editingConfig.hero.tag.en}
+                    onChange={e => setEditingConfig({
+                      ...editingConfig,
+                      hero: { ...editingConfig.hero, tag: { ...editingConfig.hero.tag, en: e.target.value } }
+                    })}
                   />
                 </div>
                 <div>
                   <label className="text-[10px] font-black uppercase text-viona-detail block mb-2">Tag (DE)</label>
-                  <input 
-                    type="text" 
-                    className="w-full p-3 bg-gray-50 rounded-xl text-xs font-bold" 
-                    value={editingConfig.hero.tag.de} 
-                    onChange={e => setEditingConfig({ 
-                      ...editingConfig, 
-                      hero: { ...editingConfig.hero, tag: { ...editingConfig.hero.tag, de: e.target.value } } 
-                    })} 
+                  <input
+                    type="text"
+                    className="w-full p-3 bg-gray-50 rounded-xl text-xs font-bold"
+                    value={editingConfig.hero.tag.de}
+                    onChange={e => setEditingConfig({
+                      ...editingConfig,
+                      hero: { ...editingConfig.hero, tag: { ...editingConfig.hero.tag, de: e.target.value } }
+                    })}
                   />
                 </div>
               </div>
@@ -451,38 +757,38 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ bookings, onLogo
               <div className="grid grid-cols-3 gap-6">
                 <div>
                   <label className="text-[10px] font-black uppercase text-viona-detail block mb-2">Title (TR)</label>
-                  <input 
-                    type="text" 
-                    className="w-full p-3 bg-gray-50 rounded-xl text-sm font-serif" 
-                    value={editingConfig.hero.title.tr} 
-                    onChange={e => setEditingConfig({ 
-                      ...editingConfig, 
-                      hero: { ...editingConfig.hero, title: { ...editingConfig.hero.title, tr: e.target.value } } 
-                    })} 
+                  <input
+                    type="text"
+                    className="w-full p-3 bg-gray-50 rounded-xl text-sm font-serif"
+                    value={editingConfig.hero.title.tr}
+                    onChange={e => setEditingConfig({
+                      ...editingConfig,
+                      hero: { ...editingConfig.hero, title: { ...editingConfig.hero.title, tr: e.target.value } }
+                    })}
                   />
                 </div>
                 <div>
                   <label className="text-[10px] font-black uppercase text-viona-detail block mb-2">Title (EN)</label>
-                  <input 
-                    type="text" 
-                    className="w-full p-3 bg-gray-50 rounded-xl text-sm font-serif" 
-                    value={editingConfig.hero.title.en} 
-                    onChange={e => setEditingConfig({ 
-                      ...editingConfig, 
-                      hero: { ...editingConfig.hero, title: { ...editingConfig.hero.title, en: e.target.value } } 
-                    })} 
+                  <input
+                    type="text"
+                    className="w-full p-3 bg-gray-50 rounded-xl text-sm font-serif"
+                    value={editingConfig.hero.title.en}
+                    onChange={e => setEditingConfig({
+                      ...editingConfig,
+                      hero: { ...editingConfig.hero, title: { ...editingConfig.hero.title, en: e.target.value } }
+                    })}
                   />
                 </div>
                 <div>
                   <label className="text-[10px] font-black uppercase text-viona-detail block mb-2">Title (DE)</label>
-                  <input 
-                    type="text" 
-                    className="w-full p-3 bg-gray-50 rounded-xl text-sm font-serif" 
-                    value={editingConfig.hero.title.de} 
-                    onChange={e => setEditingConfig({ 
-                      ...editingConfig, 
-                      hero: { ...editingConfig.hero, title: { ...editingConfig.hero.title, de: e.target.value } } 
-                    })} 
+                  <input
+                    type="text"
+                    className="w-full p-3 bg-gray-50 rounded-xl text-sm font-serif"
+                    value={editingConfig.hero.title.de}
+                    onChange={e => setEditingConfig({
+                      ...editingConfig,
+                      hero: { ...editingConfig.hero, title: { ...editingConfig.hero.title, de: e.target.value } }
+                    })}
                   />
                 </div>
               </div>
@@ -490,35 +796,35 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ bookings, onLogo
               <div className="grid grid-cols-3 gap-6">
                 <div>
                   <label className="text-[10px] font-black uppercase text-viona-detail block mb-2">Subtitle (TR)</label>
-                  <textarea 
-                    className="w-full p-3 bg-gray-50 rounded-xl text-xs resize-none h-20" 
-                    value={editingConfig.hero.subtitle.tr} 
-                    onChange={e => setEditingConfig({ 
-                      ...editingConfig, 
-                      hero: { ...editingConfig.hero, subtitle: { ...editingConfig.hero.subtitle, tr: e.target.value } } 
-                    })} 
+                  <textarea
+                    className="w-full p-3 bg-gray-50 rounded-xl text-xs resize-none h-20"
+                    value={editingConfig.hero.subtitle.tr}
+                    onChange={e => setEditingConfig({
+                      ...editingConfig,
+                      hero: { ...editingConfig.hero, subtitle: { ...editingConfig.hero.subtitle, tr: e.target.value } }
+                    })}
                   />
                 </div>
                 <div>
                   <label className="text-[10px] font-black uppercase text-viona-detail block mb-2">Subtitle (EN)</label>
-                  <textarea 
-                    className="w-full p-3 bg-gray-50 rounded-xl text-xs resize-none h-20" 
-                    value={editingConfig.hero.subtitle.en} 
-                    onChange={e => setEditingConfig({ 
-                      ...editingConfig, 
-                      hero: { ...editingConfig.hero, subtitle: { ...editingConfig.hero.subtitle, en: e.target.value } } 
-                    })} 
+                  <textarea
+                    className="w-full p-3 bg-gray-50 rounded-xl text-xs resize-none h-20"
+                    value={editingConfig.hero.subtitle.en}
+                    onChange={e => setEditingConfig({
+                      ...editingConfig,
+                      hero: { ...editingConfig.hero, subtitle: { ...editingConfig.hero.subtitle, en: e.target.value } }
+                    })}
                   />
                 </div>
                 <div>
                   <label className="text-[10px] font-black uppercase text-viona-detail block mb-2">Subtitle (DE)</label>
-                  <textarea 
-                    className="w-full p-3 bg-gray-50 rounded-xl text-xs resize-none h-20" 
-                    value={editingConfig.hero.subtitle.de} 
-                    onChange={e => setEditingConfig({ 
-                      ...editingConfig, 
-                      hero: { ...editingConfig.hero, subtitle: { ...editingConfig.hero.subtitle, de: e.target.value } } 
-                    })} 
+                  <textarea
+                    className="w-full p-3 bg-gray-50 rounded-xl text-xs resize-none h-20"
+                    value={editingConfig.hero.subtitle.de}
+                    onChange={e => setEditingConfig({
+                      ...editingConfig,
+                      hero: { ...editingConfig.hero, subtitle: { ...editingConfig.hero.subtitle, de: e.target.value } }
+                    })}
                   />
                 </div>
               </div>
@@ -529,29 +835,29 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ bookings, onLogo
               <h4 className="text-2xl font-serif text-viona-text flex items-center gap-3">
                 <Settings className="w-6 h-6 text-viona-accent" /> Philosophy Section
               </h4>
-              
+
               <div className="grid grid-cols-2 gap-8">
                 {/* Image 1 */}
                 <div className="space-y-4">
                   <label className="text-[10px] font-black uppercase text-viona-detail block">Philosophy Image 1</label>
                   <div className="relative group">
-                    <img 
-                      src={editingConfig.about.image1} 
-                      className="w-full h-48 object-cover rounded-2xl shadow-lg cursor-pointer" 
+                    <img
+                      src={editingConfig.about.image1}
+                      className="w-full h-48 object-cover rounded-2xl shadow-lg cursor-pointer"
                       alt="Philosophy 1"
                       onClick={() => setImagePreview(editingConfig.about.image1)}
                     />
                     <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-all rounded-2xl flex items-center justify-center gap-3">
                       <label className="p-3 bg-white rounded-full cursor-pointer hover:scale-110 transition-transform">
                         <Upload className="w-5 h-5 text-viona-accent" />
-                        <input 
-                          type="file" 
-                          accept="image/*" 
-                          className="hidden" 
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
                           onChange={(e) => handleImageUpload(e, 'about1')}
                         />
                       </label>
-                      <button 
+                      <button
                         onClick={() => setImagePreview(editingConfig.about.image1)}
                         className="p-3 bg-white rounded-full hover:scale-110 transition-transform"
                       >
@@ -559,12 +865,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ bookings, onLogo
                       </button>
                     </div>
                   </div>
-                  <input 
-                    type="text" 
-                    placeholder="Or paste URL" 
-                    className="w-full p-4 bg-gray-50 rounded-2xl text-xs" 
-                    value={editingConfig.about.image1} 
-                    onChange={e => setEditingConfig({ ...editingConfig, about: { ...editingConfig.about, image1: e.target.value } })} 
+                  <input
+                    type="text"
+                    placeholder="Or paste URL"
+                    className="w-full p-4 bg-gray-50 rounded-2xl text-xs"
+                    value={editingConfig.about.image1}
+                    onChange={e => setEditingConfig({ ...editingConfig, about: { ...editingConfig.about, image1: e.target.value } })}
                   />
                 </div>
 
@@ -572,23 +878,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ bookings, onLogo
                 <div className="space-y-4">
                   <label className="text-[10px] font-black uppercase text-viona-detail block">Philosophy Image 2</label>
                   <div className="relative group">
-                    <img 
-                      src={editingConfig.about.image2} 
-                      className="w-full h-48 object-cover rounded-2xl shadow-lg cursor-pointer" 
+                    <img
+                      src={editingConfig.about.image2}
+                      className="w-full h-48 object-cover rounded-2xl shadow-lg cursor-pointer"
                       alt="Philosophy 2"
                       onClick={() => setImagePreview(editingConfig.about.image2)}
                     />
                     <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-all rounded-2xl flex items-center justify-center gap-3">
                       <label className="p-3 bg-white rounded-full cursor-pointer hover:scale-110 transition-transform">
                         <Upload className="w-5 h-5 text-viona-accent" />
-                        <input 
-                          type="file" 
-                          accept="image/*" 
-                          className="hidden" 
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
                           onChange={(e) => handleImageUpload(e, 'about2')}
                         />
                       </label>
-                      <button 
+                      <button
                         onClick={() => setImagePreview(editingConfig.about.image2)}
                         className="p-3 bg-white rounded-full hover:scale-110 transition-transform"
                       >
@@ -596,12 +902,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ bookings, onLogo
                       </button>
                     </div>
                   </div>
-                  <input 
-                    type="text" 
-                    placeholder="Or paste URL" 
-                    className="w-full p-4 bg-gray-50 rounded-2xl text-xs" 
-                    value={editingConfig.about.image2} 
-                    onChange={e => setEditingConfig({ ...editingConfig, about: { ...editingConfig.about, image2: e.target.value } })} 
+                  <input
+                    type="text"
+                    placeholder="Or paste URL"
+                    className="w-full p-4 bg-gray-50 rounded-2xl text-xs"
+                    value={editingConfig.about.image2}
+                    onChange={e => setEditingConfig({ ...editingConfig, about: { ...editingConfig.about, image2: e.target.value } })}
                   />
                 </div>
               </div>
@@ -610,38 +916,38 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ bookings, onLogo
               <div className="grid grid-cols-3 gap-6">
                 <div>
                   <label className="text-[10px] font-black uppercase text-viona-detail block mb-2">Title (TR)</label>
-                  <input 
-                    type="text" 
-                    className="w-full p-3 bg-gray-50 rounded-xl text-sm font-serif" 
-                    value={editingConfig.about.title.tr} 
-                    onChange={e => setEditingConfig({ 
-                      ...editingConfig, 
-                      about: { ...editingConfig.about, title: { ...editingConfig.about.title, tr: e.target.value } } 
-                    })} 
+                  <input
+                    type="text"
+                    className="w-full p-3 bg-gray-50 rounded-xl text-sm font-serif"
+                    value={editingConfig.about.title.tr}
+                    onChange={e => setEditingConfig({
+                      ...editingConfig,
+                      about: { ...editingConfig.about, title: { ...editingConfig.about.title, tr: e.target.value } }
+                    })}
                   />
                 </div>
                 <div>
                   <label className="text-[10px] font-black uppercase text-viona-detail block mb-2">Title (EN)</label>
-                  <input 
-                    type="text" 
-                    className="w-full p-3 bg-gray-50 rounded-xl text-sm font-serif" 
-                    value={editingConfig.about.title.en} 
-                    onChange={e => setEditingConfig({ 
-                      ...editingConfig, 
-                      about: { ...editingConfig.about, title: { ...editingConfig.about.title, en: e.target.value } } 
-                    })} 
+                  <input
+                    type="text"
+                    className="w-full p-3 bg-gray-50 rounded-xl text-sm font-serif"
+                    value={editingConfig.about.title.en}
+                    onChange={e => setEditingConfig({
+                      ...editingConfig,
+                      about: { ...editingConfig.about, title: { ...editingConfig.about.title, en: e.target.value } }
+                    })}
                   />
                 </div>
                 <div>
                   <label className="text-[10px] font-black uppercase text-viona-detail block mb-2">Title (DE)</label>
-                  <input 
-                    type="text" 
-                    className="w-full p-3 bg-gray-50 rounded-xl text-sm font-serif" 
-                    value={editingConfig.about.title.de} 
-                    onChange={e => setEditingConfig({ 
-                      ...editingConfig, 
-                      about: { ...editingConfig.about, title: { ...editingConfig.about.title, de: e.target.value } } 
-                    })} 
+                  <input
+                    type="text"
+                    className="w-full p-3 bg-gray-50 rounded-xl text-sm font-serif"
+                    value={editingConfig.about.title.de}
+                    onChange={e => setEditingConfig({
+                      ...editingConfig,
+                      about: { ...editingConfig.about, title: { ...editingConfig.about.title, de: e.target.value } }
+                    })}
                   />
                 </div>
               </div>
@@ -649,35 +955,35 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ bookings, onLogo
               <div className="grid grid-cols-3 gap-6">
                 <div>
                   <label className="text-[10px] font-black uppercase text-viona-detail block mb-2">Philosophy (TR)</label>
-                  <textarea 
-                    className="w-full p-3 bg-gray-50 rounded-xl text-xs resize-none h-32" 
-                    value={editingConfig.about.philosophy.tr} 
-                    onChange={e => setEditingConfig({ 
-                      ...editingConfig, 
-                      about: { ...editingConfig.about, philosophy: { ...editingConfig.about.philosophy, tr: e.target.value } } 
-                    })} 
+                  <textarea
+                    className="w-full p-3 bg-gray-50 rounded-xl text-xs resize-none h-32"
+                    value={editingConfig.about.philosophy.tr}
+                    onChange={e => setEditingConfig({
+                      ...editingConfig,
+                      about: { ...editingConfig.about, philosophy: { ...editingConfig.about.philosophy, tr: e.target.value } }
+                    })}
                   />
                 </div>
                 <div>
                   <label className="text-[10px] font-black uppercase text-viona-detail block mb-2">Philosophy (EN)</label>
-                  <textarea 
-                    className="w-full p-3 bg-gray-50 rounded-xl text-xs resize-none h-32" 
-                    value={editingConfig.about.philosophy.en} 
-                    onChange={e => setEditingConfig({ 
-                      ...editingConfig, 
-                      about: { ...editingConfig.about, philosophy: { ...editingConfig.about.philosophy, en: e.target.value } } 
-                    })} 
+                  <textarea
+                    className="w-full p-3 bg-gray-50 rounded-xl text-xs resize-none h-32"
+                    value={editingConfig.about.philosophy.en}
+                    onChange={e => setEditingConfig({
+                      ...editingConfig,
+                      about: { ...editingConfig.about, philosophy: { ...editingConfig.about.philosophy, en: e.target.value } }
+                    })}
                   />
                 </div>
                 <div>
                   <label className="text-[10px] font-black uppercase text-viona-detail block mb-2">Philosophy (DE)</label>
-                  <textarea 
-                    className="w-full p-3 bg-gray-50 rounded-xl text-xs resize-none h-32" 
-                    value={editingConfig.about.philosophy.de} 
-                    onChange={e => setEditingConfig({ 
-                      ...editingConfig, 
-                      about: { ...editingConfig.about, philosophy: { ...editingConfig.about.philosophy, de: e.target.value } } 
-                    })} 
+                  <textarea
+                    className="w-full p-3 bg-gray-50 rounded-xl text-xs resize-none h-32"
+                    value={editingConfig.about.philosophy.de}
+                    onChange={e => setEditingConfig({
+                      ...editingConfig,
+                      about: { ...editingConfig.about, philosophy: { ...editingConfig.about.philosophy, de: e.target.value } }
+                    })}
                   />
                 </div>
               </div>
@@ -685,39 +991,43 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ bookings, onLogo
           </div>
         )}
 
+        {activeTab === 'availability' && (
+          <AvailabilityManagement lang={lang} />
+        )}
+
         {activeTab === 'roadmap' && (
           <div className="max-w-3xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4">
             <div className="bg-white p-12 rounded-[3rem] shadow-sm border border-gray-100">
-               <div className="flex items-center gap-4 mb-10">
-                 <div className="p-4 bg-viona-accent/10 rounded-2xl">
-                   <Layers className="w-8 h-8 text-viona-accent" />
-                 </div>
-                 <div>
-                   <h4 className="text-3xl font-serif text-viona-text">Project Roadmap</h4>
-                   <p className="text-[10px] font-black uppercase tracking-widest text-viona-detail mt-1">Development Status Report</p>
-                 </div>
-               </div>
+              <div className="flex items-center gap-4 mb-10">
+                <div className="p-4 bg-viona-accent/10 rounded-2xl">
+                  <Layers className="w-8 h-8 text-viona-accent" />
+                </div>
+                <div>
+                  <h4 className="text-3xl font-serif text-viona-text">Project Roadmap</h4>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-viona-detail mt-1">Development Status Report</p>
+                </div>
+              </div>
 
-               <div className="space-y-6">
-                 {roadmapItems.map((item, i) => (
-                   <div key={i} className="flex items-center justify-between p-6 bg-viona-bg/30 rounded-2xl border border-viona-bg/50">
-                     <div className="flex items-center gap-4">
-                       {item.status === 'completed' ? (
-                         <CheckCircle className="w-5 h-5 text-green-600" />
-                       ) : (
-                         <Clock className="w-5 h-5 text-amber-500" />
-                       )}
-                       <div>
-                         <p className={`font-bold text-sm ${item.status === 'completed' ? 'text-viona-text' : 'text-viona-detail'}`}>{item.title}</p>
-                         <p className="text-[9px] uppercase font-black tracking-widest text-viona-detail mt-0.5">{item.date}</p>
-                       </div>
-                     </div>
-                     <span className={`text-[9px] font-black uppercase px-3 py-1 rounded-full ${item.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
-                       {item.status}
-                     </span>
-                   </div>
-                 ))}
-               </div>
+              <div className="space-y-6">
+                {roadmapItems.map((item, i) => (
+                  <div key={i} className="flex items-center justify-between p-6 bg-viona-bg/30 rounded-2xl border border-viona-bg/50">
+                    <div className="flex items-center gap-4">
+                      {item.status === 'completed' ? (
+                        <CheckCircle className="w-5 h-5 text-green-600" />
+                      ) : (
+                        <Clock className="w-5 h-5 text-amber-500" />
+                      )}
+                      <div>
+                        <p className={`font-bold text-sm ${item.status === 'completed' ? 'text-viona-text' : 'text-viona-detail'}`}>{item.title}</p>
+                        <p className="text-[9px] uppercase font-black tracking-widest text-viona-detail mt-0.5">{item.date}</p>
+                      </div>
+                    </div>
+                    <span className={`text-[9px] font-black uppercase px-3 py-1 rounded-full ${item.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                      {item.status}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         )}
@@ -726,7 +1036,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ bookings, onLogo
       {/* Image Preview Modal with Slider */}
       {imagePreview && (
         <div className="fixed inset-0 z-[200] bg-black/95 backdrop-blur-xl flex items-center justify-center p-8">
-          <button 
+          <button
             onClick={() => setImagePreview(null)}
             className="absolute top-8 right-8 p-4 bg-white/10 hover:bg-white/20 rounded-full transition-all"
           >
@@ -735,7 +1045,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ bookings, onLogo
 
           {editingRoomIndex !== null && editingConfig.rooms[editingRoomIndex] && (
             <>
-              <button 
+              <button
                 onClick={() => {
                   const room = editingConfig.rooms[editingRoomIndex!];
                   const newIndex = selectedGalleryIndex > 0 ? selectedGalleryIndex - 1 : room.gallery.length - 1;
@@ -747,7 +1057,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ bookings, onLogo
                 <ChevronLeft className="w-8 h-8 text-white" />
               </button>
 
-              <button 
+              <button
                 onClick={() => {
                   const room = editingConfig.rooms[editingRoomIndex!];
                   const newIndex = selectedGalleryIndex < room.gallery.length - 1 ? selectedGalleryIndex + 1 : 0;
@@ -762,21 +1072,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ bookings, onLogo
           )}
 
           <div className="max-w-6xl w-full space-y-6">
-            <img 
-              src={imagePreview} 
-              className="w-full max-h-[70vh] object-contain rounded-3xl shadow-2xl" 
+            <img
+              src={imagePreview}
+              className="w-full max-h-[70vh] object-contain rounded-3xl shadow-2xl"
               alt="Preview"
             />
-            
+
             {editingRoomIndex !== null && editingConfig.rooms[editingRoomIndex] && (
               <div className="flex gap-3 justify-center overflow-x-auto pb-4">
                 {editingConfig.rooms[editingRoomIndex].gallery.map((img, idx) => (
                   <img
                     key={idx}
                     src={img}
-                    className={`w-24 h-16 object-cover rounded-xl cursor-pointer transition-all ${
-                      idx === selectedGalleryIndex ? 'ring-4 ring-viona-accent scale-110' : 'opacity-60 hover:opacity-100'
-                    }`}
+                    className={`w-24 h-16 object-cover rounded-xl cursor-pointer transition-all ${idx === selectedGalleryIndex ? 'ring-4 ring-viona-accent scale-110' : 'opacity-60 hover:opacity-100'
+                      }`}
                     onClick={() => {
                       setSelectedGalleryIndex(idx);
                       setImagePreview(img);
@@ -789,7 +1098,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ bookings, onLogo
 
             <div className="bg-white/5 backdrop-blur-md rounded-2xl p-6 text-white text-center">
               <p className="text-xs font-bold uppercase tracking-widest opacity-60">
-                {editingRoomIndex !== null 
+                {editingRoomIndex !== null
                   ? `Gallery ${selectedGalleryIndex + 1} / ${editingConfig.rooms[editingRoomIndex].gallery.length}`
                   : 'Image Preview'
                 }

@@ -15,7 +15,7 @@ export const generateBookingConfirmationEmail = (
     lang === 'tr' ? 'tr-TR' : lang === 'de' ? 'de-DE' : 'en-US',
     { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }
   );
-  
+
   const checkOutDate = new Date(booking.checkOut).toLocaleDateString(
     lang === 'tr' ? 'tr-TR' : lang === 'de' ? 'de-DE' : 'en-US',
     { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }
@@ -310,7 +310,7 @@ export const generateBookingConfirmationEmail = (
         </div>
       </div>
 
-      <div class="total-price">
+      <div class="total-price" style="display: none;">
         <span class="label">${t.totalPrice}</span>
         <span class="value">$${booking.totalPrice}</span>
       </div>
@@ -363,7 +363,6 @@ ${t.room}: ${booking.roomName}
 ${t.checkIn}: ${checkInDate}
 ${t.checkOut}: ${checkOutDate}
 ${t.nights}: ${nights}
-${t.totalPrice}: $${booking.totalPrice}
 
 ${t.contact}
 ${t.email}: ${booking.customerEmail}
@@ -398,12 +397,12 @@ export const sendBookingConfirmationEmail = async (
   lang: Language = 'tr'
 ): Promise<boolean> => {
   const emailTemplate = generateBookingConfirmationEmail(booking, lang);
-  
+
   console.log('📧 Email Preview (Development Mode):');
   console.log('To:', booking.customerEmail);
   console.log('Subject:', emailTemplate.subject);
   console.log('\nHTML Preview:', emailTemplate.html.substring(0, 500) + '...');
-  
+
   // In production, replace with actual email service:
   // await emailService.send({
   //   to: booking.customerEmail,
@@ -411,6 +410,6 @@ export const sendBookingConfirmationEmail = async (
   //   html: emailTemplate.html,
   //   text: emailTemplate.text
   // });
-  
+
   return true;
 };

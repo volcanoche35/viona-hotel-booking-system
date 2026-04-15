@@ -9,15 +9,20 @@ interface LazyImageProps {
   onClick?: () => void;
 }
 
-export const LazyImage: React.FC<LazyImageProps> = ({ 
-  src, 
-  alt, 
-  className = '', 
+export const LazyImage: React.FC<LazyImageProps> = ({
+  src,
+  alt,
+  className = '',
   priority = false,
   placeholder = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300"%3E%3Crect fill="%23F4EDE4" width="400" height="300"/%3E%3Ctext fill="%23D9835D" font-family="Arial" font-size="18" x="50%25" y="50%25" text-anchor="middle" dominant-baseline="middle"%3ELoading...%3C/text%3E%3C/svg%3E',
   onClick
 }) => {
-  const [imageSrc, setImageSrc] = useState<string>(priority ? src : placeholder);
+  // Prepend BASE_URL for relative paths starting with /
+  const resolvedSrc = src.startsWith('/')
+    ? `${import.meta.env.BASE_URL}${src.slice(1)}`
+    : src;
+
+  const [imageSrc, setImageSrc] = useState<string>(priority ? resolvedSrc : placeholder);
   const [isLoaded, setIsLoaded] = useState(false);
   const [isInView, setIsInView] = useState(false);
   const imgRef = useRef<HTMLImageElement>(null);
@@ -25,13 +30,13 @@ export const LazyImage: React.FC<LazyImageProps> = ({
   useEffect(() => {
     // Skip intersection observer for priority images
     if (priority) {
-      setImageSrc(src);
+      setImageSrc(resolvedSrc);
       return;
     }
 
     // Check if IntersectionObserver is supported
     if (!('IntersectionObserver' in window)) {
-      setImageSrc(src);
+      setImageSrc(resolvedSrc);
       return;
     }
 
@@ -57,19 +62,19 @@ export const LazyImage: React.FC<LazyImageProps> = ({
     return () => {
       observer.disconnect();
     };
-  }, [priority, src]);
+  }, [priority, resolvedSrc]);
 
   useEffect(() => {
     if (isInView && !priority) {
       // Preload image
       const img = new Image();
-      img.src = src;
+      img.src = resolvedSrc;
       img.onload = () => {
-        setImageSrc(src);
+        setImageSrc(resolvedSrc);
         setIsLoaded(true);
       };
     }
-  }, [isInView, src, priority]);
+  }, [isInView, resolvedSrc, priority]);
 
   return (
     <img

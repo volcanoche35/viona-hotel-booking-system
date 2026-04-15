@@ -4,11 +4,11 @@ import { Room, RoomCategory } from '../types';
 import { Language, translations } from '../translations';
 import { AMENITIES_MAP } from '../constants';
 import { LazyImage } from './LazyImage';
-import { 
-  ArrowLeft, 
-  Calendar, 
-  ChevronRight, 
-  MapPin, 
+import {
+  ArrowLeft,
+  Calendar,
+  ChevronRight,
+  MapPin,
   Star,
   ShieldCheck
 } from 'lucide-react';
@@ -18,24 +18,27 @@ interface RoomDetailViewProps {
   onBack: () => void;
   onBook: () => void;
   lang: Language;
+  checkIn?: string;
+  checkOut?: string;
 }
 
-export const RoomDetailView: React.FC<RoomDetailViewProps> = ({ room, onBack, onBook, lang }) => {
+export const RoomDetailView: React.FC<RoomDetailViewProps> = ({ room, onBack, onBook, lang, checkIn, checkOut }) => {
   const t = translations[lang];
+  const hasDates = Boolean(checkIn && checkOut);
 
   return (
     <div className="min-h-screen bg-white animate-in fade-in duration-700">
       {/* Header / Hero */}
       <section className="relative h-[60vh] overflow-hidden">
-        <button 
+        <button
           onClick={onBack}
           className="absolute top-8 left-8 z-50 p-4 bg-white/20 backdrop-blur-xl text-white rounded-full hover:bg-white hover:text-viona-text transition-all shadow-2xl border border-white/20"
         >
           <ArrowLeft className="w-6 h-6" />
         </button>
         <LazyImage
-          src={room.image} 
-          className="w-full h-full object-cover scale-105" 
+          src={room.image}
+          className="w-full h-full object-cover scale-105"
           alt={room.name[lang]}
           priority={true}
         />
@@ -88,8 +91,8 @@ export const RoomDetailView: React.FC<RoomDetailViewProps> = ({ room, onBack, on
                 {room.gallery.map((img, i) => (
                   <div key={i} className={`overflow-hidden rounded-[2rem] ${i === 0 ? 'col-span-2 h-[40rem]' : 'h-[25rem]'}`}>
                     <LazyImage
-                      src={img} 
-                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-1000" 
+                      src={img}
+                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-1000"
                       alt={`Detail ${i}`}
                     />
                   </div>
@@ -104,7 +107,8 @@ export const RoomDetailView: React.FC<RoomDetailViewProps> = ({ room, onBack, on
               <div className="flex justify-between items-end">
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-widest text-viona-detail mb-1">{t.per_night}</p>
-                  <p className="text-5xl font-serif text-viona-accent">${room.price}</p>
+                  {/* Price Hidden */}
+                  {/* <p className="text-5xl font-serif text-viona-accent">${room.price}</p> */}
                 </div>
                 <div className="text-right">
                   <p className="text-[10px] font-black uppercase tracking-widest text-viona-detail mb-1">Status</p>
@@ -113,20 +117,32 @@ export const RoomDetailView: React.FC<RoomDetailViewProps> = ({ room, onBack, on
               </div>
 
               <div className="space-y-4">
-                <button 
-                  onClick={onBook}
+                {checkIn && checkOut && (
+                  <div className="bg-viona-bg/60 rounded-2xl px-5 py-3 text-xs font-bold text-viona-text/70 flex justify-between">
+                    <span>{new Date(checkIn).toLocaleDateString(lang === 'tr' ? 'tr-TR' : 'en-US', { day: 'numeric', month: 'short' })}</span>
+                    <span className="text-viona-accent">→</span>
+                    <span>{new Date(checkOut).toLocaleDateString(lang === 'tr' ? 'tr-TR' : 'en-US', { day: 'numeric', month: 'short' })}</span>
+                  </div>
+                )}
+                <button
+                  onClick={hasDates ? onBook : onBack}
                   className="w-full py-6 bg-viona-text text-white rounded-[1.5rem] font-black uppercase tracking-widest text-xs hover:bg-viona-accent transition-all shadow-xl flex items-center justify-center gap-3"
                 >
-                  Confirm Reservation <ChevronRight className="w-4 h-4" />
+                  {hasDates
+                    ? <>{lang === 'tr' ? 'Rezervasyon Yap' : 'Confirm Reservation'} <ChevronRight className="w-4 h-4" /></>
+                    : <>{lang === 'tr' ? '← Tarih Seçmek İçin Dön' : '← Go Back to Select Dates'}</>
+                  }
                 </button>
-                <p className="text-[9px] text-viona-detail text-center uppercase font-black tracking-widest opacity-60">No payment required now</p>
+                <p className="text-[9px] text-viona-detail text-center uppercase font-black tracking-widest opacity-60">
+                  {lang === 'tr' ? 'Şu an ödeme alınmaz' : 'No payment required now'}
+                </p>
               </div>
 
               <div className="pt-8 border-t border-viona-bg flex flex-col gap-4">
-                 <div className="flex items-center gap-4 text-viona-text">
-                   <Calendar className="w-5 h-5 text-viona-accent" />
-                   <span className="text-xs font-bold">Free cancellation within 24h</span>
-                 </div>
+                <div className="flex items-center gap-4 text-viona-text">
+                  <Calendar className="w-5 h-5 text-viona-accent" />
+                  <span className="text-xs font-bold">Free cancellation within 24h</span>
+                </div>
               </div>
             </div>
           </div>

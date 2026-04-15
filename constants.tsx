@@ -19,7 +19,8 @@ export const AMENITIES_MAP: Record<string, { name: string; icon: React.ReactNode
   wifi: { name: 'Free Wi-Fi', icon: <Wifi className="w-4 h-4" /> },
 };
 
-const DEFAULT_AMENITIES = ['sea_view', 'led_tv', 'minibar', 'safe', 'ac', 'wifi'];
+const DEFAULT_AMENITIES = ['led_tv', 'minibar', 'safe', 'ac', 'wifi'];
+const SEA_VIEW_AMENITIES = ['sea_view', ...DEFAULT_AMENITIES];
 
 export const INITIAL_SITE_CONFIG: SiteConfig = {
   hero: {
@@ -34,11 +35,15 @@ export const INITIAL_SITE_CONFIG: SiteConfig = {
       de: "Ihr Refugium an der Küste"
     },
     subtitle: {
-      en: "Where the Aegean sun meets modern comfort. A 17-room boutique experience designed for peace and elegance.",
-      tr: "Ege güneşinin modern konforla buluştuğu nokta. Huzur ve zarafet için tasarlanmış 17 odalı bir butik deneyim.",
-      de: "Wo die ägäische Sonne auf modernen Komfort trifft. Ein Boutique-Erlebnis mit 17 Zimmern, entworfen für Ruhe und Eleganz."
+      en: "Where the Aegean sun meets modern comfort. A 20-room boutique experience designed for peace and elegance.",
+      tr: "Ege güneşinin modern konforla buluştuğu nokta. Huzur ve zarafet için tasarlanmış 20 odalı bir butik deneyim.",
+      de: "Wo die ägäische Sonne auf modernen Komfort trifft. Ein Boutique-Erlebnis mit 20 Zimmern, entworfen für Ruhe und Eleganz."
     },
-    image: "/viona-sunset-reception.jpg" // Yeni resepsiyon arka planı
+    image: `${import.meta.env.BASE_URL}viona-hero.jpg`,
+    slides: [
+      { id: 'slide1', type: 'image', url: `${import.meta.env.BASE_URL}viona-hero.jpg` },
+      { id: 'slide2', type: 'image', url: `${import.meta.env.BASE_URL}photo/viona-sunset-reception.jpg` }
+    ]
   },
   about: {
     title: {
@@ -53,60 +58,54 @@ export const INITIAL_SITE_CONFIG: SiteConfig = {
     },
     philosophy: {
       en: "Our lobby captures the freshness of the Aegean, and our reception radiates professional warmth. Viona Hotel is more than a stay; it is an architecture of serenity.",
-      tr: "Lobimizde Ege'nin ferahlığını, resepsiyonumuzda profesyonelliğin sıcaklığını hissedeceksiniz. Viona Hotel, bir konaklamadan fazı, bir sükunet mimarisidir.",
+      tr: "Lobimizde Ege'nin ferahlığını, resepsiyonumuzda profesyonelliğin sıcaklığını hissedeceksiniz. Viona Hotel, bir konaklamadan fazlası, bir sükunet mimarisidir.",
       de: "Unsere Lobby fängt die Frische der Ägäis ein, und unsere Rezeption strahlt professionelle Wärme aus. Das Viona Hotel ist mehr als nur ein Aufenthalt; es ist eine Architektur der Gelassenheit."
     },
-    image1: "/about-lobby-1.jpg",
-    image2: "/about-view-1.jpg"
+    image1: `${import.meta.env.BASE_URL}photo/361158b8-8b39-4adf-941b-589e3a4a06cb-1024.webp`,
+    image2: `${import.meta.env.BASE_URL}photo/8c450882-60d3-4414-a224-9a3ff50ddec2-1024.webp`
   },
   rooms: [
     {
-      id: 'cat_suite',
-      name: { en: 'Executive Sea Suite', tr: 'Executive Deniz Süit', de: 'Executive Meeressuite' },
-      category: RoomCategory.SUITE,
-      price: 450,
+      id: 'room_sea_view',
+      name: { en: 'Standard Sea View Room', tr: 'Standart Deniz Manzaralı Oda', de: 'Standard Zimmer mit Meerblick' },
+      category: RoomCategory.SEA_VIEW,
+      price: 350,
       description: {
-        en: "Experience the ultimate Aegean escape with panoramic sea views from your bed. Modern luxury meets coastal peace.",
-        tr: "Yatağınızdan panoramik deniz manzarasının keyfini çıkarın. Modern lüksün kıyı huzuruyla buluştuğu nokta.",
-        de: "Erleben Sie die ultimative ägäische Flucht mit Panoramablick aufs Meer direkt von Ihrem Bett aus."
+        en: "Wake up to the calming blues of the Aegean Sea. Our sea view rooms offer panoramic views from your private balcony.",
+        tr: "Ege Denizi'nin dinlendirici mavilerine uyanın. Deniz manzaralı odalarımız özel balkonunuzdan panoramik manzara sunar.",
+        de: "Wachen Sie mit dem beruhigenden Blau der Ägäis auf. Unsere Zimmer mit Meerblick bieten Panoramablick von Ihrem privaten Balkon."
       },
-      image: '/room-suite-1.jpg',
-      gallery: ['/room-suite-2.png', '/viona-hero.jpg'],
-      amenities: DEFAULT_AMENITIES,
+      image: `${import.meta.env.BASE_URL}photo/278bb20e-48d6-4978-99e5-95b4af534337-1024.webp`,
+      gallery: [`${import.meta.env.BASE_URL}photo/8c450882-60d3-4414-a224-9a3ff50ddec2-1024.webp`, `${import.meta.env.BASE_URL}photo/82c71c92-cdb2-4541-8a36-8c169513bccf-1024.webp`],
+      amenities: SEA_VIEW_AMENITIES,
     },
     {
-      id: 'cat_double',
-      name: { en: 'Deluxe Garden Room', tr: 'Deluxe Bahçe Odası', de: 'Deluxe Gartenzimmer' },
-      category: RoomCategory.DOUBLE,
+      id: 'room_land_view',
+      name: { en: 'Standard Land View Room', tr: 'Standart Kara Manzaralı Oda', de: 'Standard Zimmer mit Gartenblick' },
+      category: RoomCategory.LAND_VIEW,
       price: 280,
       description: {
-        en: "Spacious and bright, featuring a large balcony and sophisticated wooden details for a warm atmosphere.",
-        tr: "Geniş ve aydınlık, büyük bir balkon ve sıcak bir atmosfer için sofistike ahşap detaylarla donatılmış.",
-        de: "Geräumig und hell, mit einem großen Balkon und anspruchsvollen Holzdetails für eine warme Atmosphäre."
+        en: "Surrounded by Mediterranean greenery, our garden view rooms offer a peaceful retreat with lush views.",
+        tr: "Akdeniz yeşilliğiyle çevrili bahçe manzaralı odalarımız, yemyeşil manzarayla huzurlu bir kaçış sunar.",
+        de: "Umgeben von mediterranem Grün bieten unsere Zimmer mit Gartenblick einen friedlichen Rückzugsort mit üppiger Aussicht."
       },
-      image: '/room-double-1.png',
-      gallery: ['/about-lobby-1.jpg', '/about-view-1.jpg'],
-      amenities: DEFAULT_AMENITIES,
-    },
-    {
-      id: 'cat_twin',
-      name: { en: 'Classic Twin Comfort', tr: 'Klasik İkiz Konfor', de: 'Klassischer Twin-Komfort' },
-      category: RoomCategory.TWIN,
-      price: 240,
-      description: {
-        en: "Perfectly arranged twin beds with high-end linens and a functional desk area for productivity.",
-        tr: "Yüksek kaliteli nevresimler ve verimlilik için fonksiyonel bir çalışma masası alanı ile mükemmel düzenlenmiş ikiz yataklar.",
-        de: "Perfekt arrangierte Einzelbetten mit hochwertiger Bettwäsche und einem funktionalen Schreibtischbereich."
-      },
-      image: '/room-double-1.png',
-      gallery: ['/about-view-1.jpg'],
+      image: `${import.meta.env.BASE_URL}photo/11b7e4de-ebeb-43cc-8b65-1d29565263c1-1024.webp`,
+      gallery: [`${import.meta.env.BASE_URL}photo/2b86519c-456b-449d-b29b-e02a707846b5-1024.webp`, `${import.meta.env.BASE_URL}photo/361158b8-8b39-4adf-941b-589e3a4a06cb-1024.webp`],
       amenities: DEFAULT_AMENITIES,
     }
   ]
 };
 
-export const CATEGORY_COUNTS = {
-  [RoomCategory.SUITE]: 1,
-  [RoomCategory.DOUBLE]: 12,
-  [RoomCategory.TWIN]: 4
+// 20 odalı butik otel: 10 Deniz, 10 Kara manzaralı
+export const CATEGORY_COUNTS: Record<RoomCategory, number> = {
+  [RoomCategory.SEA_VIEW]: 10,
+  [RoomCategory.LAND_VIEW]: 10
 };
+
+// 3. Parti Rezervasyon Linkleri
+export const THIRD_PARTY_LINKS = {
+  booking: 'https://www.booking.com/hotel/tr/viona-hotel.html', // Kullanıcı güncelleyecek
+  expedia: 'https://www.expedia.com/Izmir-Hotels-Viona-Hotel.html', // Kullanıcı güncelleyecek
+  trivago: null // Opsiyonel
+};
+
