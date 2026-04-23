@@ -454,7 +454,7 @@ const App: React.FC = () => {
                   </div>
                   <div>
                     <p className="text-[10px] font-black uppercase tracking-widest text-viona-detail">Email</p>
-                    <a href="mailto:info@vionahotel.com" className="text-viona-text font-bold hover:text-viona-accent transition-colors">info@vionahotel.com</a>
+                    <a href="mailto:info@vionahotel.com.tr" className="text-viona-text font-bold hover:text-viona-accent transition-colors">info@vionahotel.com.tr</a>
                   </div>
                 </div>
                 <div className="flex items-center gap-4">
@@ -509,7 +509,7 @@ const App: React.FC = () => {
                   }
                 } else {
                   // Fallback: mailto link
-                  const mailtoLink = `mailto:info@vionahotel.com?subject=${encodeURIComponent(contactForm.subject)}&body=${encodeURIComponent(`Ad: ${contactForm.name}\nEmail: ${contactForm.email}\n\n${contactForm.message}`)}`;
+                  const mailtoLink = `mailto:info@vionahotel.com.tr?subject=${encodeURIComponent(contactForm.subject)}&body=${encodeURIComponent(`Ad: ${contactForm.name}\nEmail: ${contactForm.email}\n\n${contactForm.message}`)}`;
                   window.open(mailtoLink, '_blank');
                   setContactStatus('sent');
                   setContactForm({ name: '', email: '', subject: '', message: '' });

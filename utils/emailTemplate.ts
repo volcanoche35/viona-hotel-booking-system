@@ -343,7 +343,7 @@ export const generateBookingConfirmationEmail = (
       <div class="contact-info">
         📍 Narlıdere, İzmir, Turkey<br>
         📞 +90 232 XXX XX XX<br>
-        ✉️ info@vionahotel.com
+        ✉️ info@vionahotel.com.tr
       </div>
     </div>
   </div>
@@ -381,7 +381,7 @@ ${t.team}
 Viona Hotel & Spa
 Narlıdere, İzmir, Turkey
 +90 232 XXX XX XX
-info@vionahotel.com
+info@vionahotel.com.tr
   `.trim();
 
   return {
